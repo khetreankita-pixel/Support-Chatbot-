@@ -8,7 +8,7 @@ CORS(app)
 # --- 1. SETUP API KEY ---
 import os
 # This tells Python to get the key from Render's secret safe, NOT from this file
-GEMINI_API_KEY = os.environ.get("AIzaSyDX_H66s6nIpSYvvChFEXVLlKaeClfJ2qY")
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 
 genai.configure(api_key=GEMINI_API_KEY)
 model = genai.GenerativeModel('models/gemini-2.5-flash')
