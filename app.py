@@ -6,8 +6,9 @@ app = Flask(__name__)
 CORS(app)
 
 # --- 1. SETUP API KEY ---
-# PASTE YOUR REAL KEY INSIDE THE QUOTES BELOW
-GEMINI_API_KEY = "AIzaSyDo_8tveEXYeHhkkQqJsP_MTgNYFAHT6io" 
+import os
+# This tells Python to get the key from Render's secret safe, NOT from this file
+GEMINI_API_KEY = os.environ.get("AIzaSyDX_H66s6nIpSYvvChFEXVLlKaeClfJ2qY")
 
 genai.configure(api_key=GEMINI_API_KEY)
 model = genai.GenerativeModel('models/gemini-2.5-flash')
