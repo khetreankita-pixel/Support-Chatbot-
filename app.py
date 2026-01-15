@@ -1,22 +1,33 @@
+import os
+from dotenv import load_dotenv
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import google.generativeai as genai
 
+# 1. Load secrets from .env file
+load_dotenv()
+
 app = Flask(__name__)
 CORS(app)
 
-# --- 1. SETUP API KEY ---
-import os
-# This tells Python to get the key from Render's secret safe, NOT from this file
-GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
+# 2. Configure API with the secure key
+api_key = os.getenv("GEMINI_API_KEY")
+if not api_key:
+    print("CRITICAL ERROR: No API Key found in .env file!")
 
-genai.configure(api_key=GEMINI_API_KEY)
-model = genai.GenerativeModel('models/gemini-2.5-flash')
-chat_session = model.start_chat(history=[])
+genai.configure(api_key=api_key)
+
+# 3. Define the System Persona (The "Brain")
+SYSTEM_INSTRUCTION = """
+You are the Apna Coding AI Assistant.
+Your goal is to help developers find verified hackathons and jobs.
+Always mention that our opportunities are "Verified Safe".
+Keep answers short, professional, and helpful.
+"""
 
 @app.route('/')
 def home():
-    return "Chatbot Brain is Active!"
+    return "Secure Chatbot Brain is Active!"
 
 @app.route('/chat', methods=['POST'])
 def chat():
@@ -24,21 +35,27 @@ def chat():
         data = request.json
         user_message = data.get('message')
         
-        print(f"\n--- New Message: {user_message} ---") # Print to black screen
+        print(f"\n--- User Asked: {user_message} ---")
 
-        if not GEMINI_API_KEY or "PASTE_YOUR" in GEMINI_API_KEY:
-            print("ERROR: API Key is missing!")
-            return jsonify({"reply": "Error: You forgot to paste the API Key in app.py!"})
-
-        response = chat_session.send_message(user_message)
+        # 4. FIX: Initialize model INSIDE the function 
+        # This prevents "Shared History" bugs between different users.
+        model = genai.GenerativeModel(
+            model_name='gemini-1.5-flash', # Use the correct model name
+            system_instruction=SYSTEM_INSTRUCTION
+        )
         
-        print("Gemini Replied Successfully!")
+        # Send the message
+        response = model.generate_content(user_message)
+        
+        print("Bot Replied Successfully")
         return jsonify({"reply": response.text})
         
     except Exception as e:
-        # This prints the REAL error to your black window
-        print(f"!!! CRASH ERROR !!!: {e}")
-        return jsonify({"reply": f"System Error: {e}"})
+        print(f"ERROR: {e}")
+        # Send a polite error to the user, not the crash report
+        return jsonify({"reply": "I'm having trouble connecting to the brain right now. Please try again."}), 500
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    # Use the PORT environment variable for Render deployment
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host='0.0.0.0', port=port, debug=True)
