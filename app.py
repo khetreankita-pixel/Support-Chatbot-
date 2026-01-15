@@ -39,13 +39,15 @@ def chat():
 
         # 4. FIX: Initialize model INSIDE the function 
         # This prevents "Shared History" bugs between different users.
-        model = genai.GenerativeModel(
-            model_name='gemini-1.5-flash', # Use the correct model name
-            system_instruction=SYSTEM_INSTRUCTION
+      model = genai.GenerativeModel(
+    model_name='gemini-pro'  # <--- This is the stable version
+)
         )
         
         # Send the message
-        response = model.generate_content(user_message)
+       # We manually combine the "Brain" and the "User Message."
+full_prompt = SYSTEM_INSTRUCTION + "\n\nUser: " + user_message
+response = model.generate_content(full_prompt)
         
         print("Bot Replied Successfully")
         return jsonify({"reply": response.text})
