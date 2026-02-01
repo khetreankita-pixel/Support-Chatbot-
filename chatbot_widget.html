@@ -1,0 +1,270 @@
+<div id="ac-root"></div>
+
+<style>
+    /* --- WIDGET STYLES --- */
+    #ac-chat-container {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        z-index: 2147483647; /* Maximum z-index to stay on top */
+    }
+
+    /* 1. The Toggle Button (FAB) */
+    #ac-chat-toggle {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        background: #007bff; /* BRAND COLOR: Change this to match website */
+        color: white;
+        border: none;
+        box-shadow: 0 4px 14px rgba(0,0,0,0.25);
+        cursor: pointer;
+        transition: transform 0.2s, background 0.2s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    #ac-chat-toggle:hover { transform: scale(1.05); background: #0056b3; }
+    
+    /* 2. The Chat Window */
+    #ac-chat-window {
+        position: fixed;
+        bottom: 90px;
+        right: 20px;
+        width: 360px;
+        height: 550px;
+        max-height: 80vh; /* Responsive height */
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 8px 30px rgba(0,0,0,0.15);
+        display: none; /* Hidden by default */
+        flex-direction: column;
+        overflow: hidden;
+        border: 1px solid #e0e0e0;
+        animation: ac-slide-in 0.3s ease-out;
+    }
+
+    @keyframes ac-slide-in {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Header */
+    .ac-header {
+        background: #007bff; /* BRAND COLOR */
+        color: white;
+        padding: 16px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-weight: 600;
+        font-size: 16px;
+    }
+    .ac-close-btn {
+        background: transparent;
+        border: none;
+        color: white;
+        font-size: 24px;
+        cursor: pointer;
+        line-height: 1;
+    }
+
+    /* Messages Area */
+    .ac-messages {
+        flex: 1;
+        padding: 15px;
+        overflow-y: auto;
+        background: #f8f9fa;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+    
+    /* Message Bubbles */
+    .ac-msg {
+        max-width: 80%;
+        padding: 10px 14px;
+        border-radius: 12px;
+        font-size: 14px;
+        line-height: 1.5;
+        word-wrap: break-word;
+    }
+    .ac-bot {
+        align-self: flex-start;
+        background: #e9ecef;
+        color: #212529;
+        border-bottom-left-radius: 4px;
+    }
+    .ac-user {
+        align-self: flex-end;
+        background: #007bff; /* BRAND COLOR */
+        color: white;
+        border-bottom-right-radius: 4px;
+    }
+
+    /* Typing Animation */
+    .ac-typing {
+        font-size: 12px;
+        color: #6c757d;
+        margin-left: 15px;
+        margin-bottom: 5px;
+        display: none;
+        font-style: italic;
+    }
+
+    /* Input Area */
+    .ac-input-area {
+        padding: 12px;
+        border-top: 1px solid #e0e0e0;
+        background: white;
+        display: flex;
+        gap: 10px;
+    }
+    .ac-input-area input {
+        flex: 1;
+        padding: 10px 14px;
+        border: 1px solid #ced4da;
+        border-radius: 20px;
+        outline: none;
+        font-size: 14px;
+    }
+    .ac-input-area input:focus { border-color: #007bff; }
+    
+    .ac-send-btn {
+        background: #007bff;
+        color: white;
+        border: none;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        cursor: pointer;
+        font-size: 18px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .ac-send-btn:hover { background: #0056b3; }
+</style>
+
+<div id="ac-chat-container">
+    <div id="ac-chat-window">
+        <div class="ac-header">
+            <span>ApnaCoding Assistant</span>
+            <button class="ac-close-btn" onclick="toggleACChat()">×</button>
+        </div>
+        
+        <div id="ac-messages" class="ac-messages">
+            <div class="ac-msg ac-bot">
+                Hello! 👋 I can help you with courses, internships, or coding questions. Ask me anything!
+            </div>
+        </div>
+
+        <div id="ac-typing" class="ac-typing">Assistant is thinking...</div>
+
+        <div class="ac-input-area">
+            <input type="text" id="ac-input" placeholder="Type a message..." onkeypress="handleACEnter(event)">
+            <button class="ac-send-btn" onclick="sendACMessage()">➤</button>
+        </div>
+    </div>
+
+    <button id="ac-chat-toggle" onclick="toggleACChat()">💬</button>
+</div>
+
+<script>
+    // --- CONNECT TO YOUR LIVE RENDER SERVER ---
+   const AC_BACKEND_URL = "https://apnacoding-support.onrender.com/chat";
+
+    function toggleACChat() {
+        const win = document.getElementById('ac-chat-window');
+        const isHidden = win.style.display === 'none' || win.style.display === '';
+        win.style.display = isHidden ? 'flex' : 'none';
+        if (isHidden) {
+            setTimeout(() => document.getElementById('ac-input').focus(), 100);
+        }
+    }
+
+    function handleACEnter(e) {
+        if (e.key === 'Enter') sendACMessage();
+    }
+   async function sendACMessage() {
+        const input = document.getElementById('ac-input');
+        const text = input.value.trim();
+        if (!text) return;
+
+        // --- 1. DEFINE THE BRAIN (Knowledge Base) ---
+// We add this hidden context so the AI knows about YOUR site.
+const knowledgeBase = `
+CONTEXT: You are the AI Assistant for 'Apna Coding' (https://apnacoding.site).
+your goal is to help users find verified opportunities.
+
+--- OUR WEBSITE DATA ---
+1. WHAT WE DO: A Web3 platform for verified Hackathons, Jobs, and Communities.
+2. HACKATHONS: We list verified global hackathons like "Agentic Commerce on Arc" and "EthCC".
+3. JOBS: We feature remote roles like "Frontend Developer" and "Web3 Engineer".
+4. COMMUNITIES: We list top Web3 ecosystems (Ethereum, Polygon, Solana, DeFi, DAOs).
+
+--- YOUR RULES ---
+- If asked about hackathons, tell them to check the "Hackathons" tab.
+- If asked about jobs, mention our "Verified Listings".
+- Keep answers short (max 2-3 sentences).
+- If the user says "Hi", welcome them to Apna Coding.
+
+USER QUESTION: 
+`;
+
+        // 1. Display User Message on screen
+        addACMessage(text, 'user');
+        input.value = '';
+        
+        // 2. Show Typing Indicator
+        const typingIndicator = document.getElementById('ac-typing');
+        typingIndicator.style.display = 'block';
+        scrollToBottom();
+
+        try {
+            // --- THE TRICK STARTS HERE ---
+            // We define the "Brain" instructions here in the frontend
+            const systemContext = "Context: You are the AI assistant for Apnacoding.site. Your job is to help users find verified hackathons and jobs. Keep answers short. User asks: ";
+            
+            // 3. Send to Render Backend
+            const response = await fetch(AC_BACKEND_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                // We combine the Context + User Question
+                // NEW WAY (Sends the Brain + The Question)
+                body: JSON.stringify({ message: knowledgeBase + text })
+            });
+            // --- TRICK ENDS HERE ---
+
+            if (!response.ok) throw new Error('Network response was not ok');
+
+            const data = await response.json();
+            
+            // 4. Display Bot Response
+            typingIndicator.style.display = 'none';
+            // Simple formatting: Convert **bold** to <b>
+            const formattedReply = data.reply.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
+            addACMessage(formattedReply, 'bot');
+
+        } catch (error) {
+            console.error("Chat Error:", error);
+            typingIndicator.style.display = 'none';
+            addACMessage("⚠️ Support is currently offline. Please try again later.", 'bot');
+        }
+    }
+
+    function addACMessage(htmlText, sender) {
+        const div = document.createElement('div');
+        div.className = `ac-msg ${sender === 'user' ? 'ac-user' : 'ac-bot'}`;
+        div.innerHTML = htmlText; // Using innerHTML to support bold text
+        
+        document.getElementById('ac-messages').appendChild(div);
+        scrollToBottom();
+    }
+
+    function scrollToBottom() {
+        const container = document.getElementById('ac-messages');
+        container.scrollTop = container.scrollHeight;
+    }
+</script>
